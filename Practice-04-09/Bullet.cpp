@@ -8,10 +8,6 @@ CBullet::CBullet(float x, float y, float vx, float vy) : CGameObject(x, y)
 	isDeleted = false;
 }
 
-/*
-	PHAN 9 - TODO 9.5
-	Di chuyen theo van toc. Ra khoi man hinh thi dat isDeleted = true.
-*/
 void CBullet::Update(DWORD dt)
 {
 	x += vx * dt;
@@ -23,7 +19,6 @@ void CBullet::Update(DWORD dt)
 		isDeleted = true;
 }
 
-// PHAN 9 - TODO 9.5: ve animation vien dan
 void CBullet::Render()
 {
 	CAnimations::GetInstance()->Get(BULLET_ANI_ID)->Render(x, y);

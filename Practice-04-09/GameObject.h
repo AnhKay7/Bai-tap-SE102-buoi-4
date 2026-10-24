@@ -5,11 +5,6 @@
 
 using namespace std;
 
-/*
-	PHAN 7 - Lop cha cua moi vat the trong game.
-	(x, y): tam vat the, don vi pixel, y huong xuong.
-	(vx, vy): van toc, don vi pixel / ms.
-*/
 class CGameObject
 {
 protected:
@@ -34,6 +29,14 @@ public:
 	virtual void Render() = 0;
 
 	virtual ~CGameObject();
+
+	virtual void GetSize(float& w, float& h) { w = 0; h = 0; }
+	void GetBoundingBox(float& l, float& t, float& r, float& b) {
+		float w, h; GetSize(w, h);
+		l = x - w / 2; r = x + w / 2;
+		t = y - h / 2; b = y + h / 2;
+	}
+	static bool Overlap(CGameObject* a, CGameObject* b);
 };
 
 typedef CGameObject* LPGAMEOBJECT;

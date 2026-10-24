@@ -1,10 +1,5 @@
 #include "GameObject.h"
 
-/*
-	PHAN 7 - TODO 7.1
-	Khoi tao tat ca member ve gia tri mac dinh (vi tri 0, dung yen, state = -1).
-	Member float khong tu bang 0 dau!
-*/
 CGameObject::CGameObject()
 {
 	x = 0;
@@ -16,7 +11,13 @@ CGameObject::CGameObject()
 	state = -1;
 }
 
-// PHAN 7 - TODO 7.1: goi constructor mac dinh roi gan x, y
+bool CGameObject::Overlap(CGameObject* a, CGameObject* b) {
+	float al, at, ar, ab, bl, bt, br, bb;
+	a->GetBoundingBox(al, at, ar, ab);
+	b->GetBoundingBox(bl, bt, br, bb);
+	return al < br && ar > bl && at < bb && ab > bt;
+}
+
 CGameObject::CGameObject(float x, float y) : CGameObject()
 {
 	this->x = x;

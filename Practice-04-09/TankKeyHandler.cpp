@@ -9,10 +9,6 @@
 extern CTank* tank;
 extern vector<CBullet*> bullets;
 
-/*
-	PHAN 8 - TODO 8.3: in ra cua so Output (DebugOut) ma phim vua nhan
-	PHAN 9 - TODO 9.4: DIK_SPACE -> tank->Fire(), neu khac NULL thi them vao bullets
-*/
 void CTankKeyHandler::OnKeyDown(int KeyCode)
 {
 	DebugOut(L"[INFO] Key: %d pressed\n", KeyCode);
@@ -25,18 +21,11 @@ void CTankKeyHandler::OnKeyDown(int KeyCode)
 	}
 }
 
-// PHAN 8 - TODO 8.3: in ra ma phim vua nha
 void CTankKeyHandler::OnKeyUp(int KeyCode)
 {
 	DebugOut(L"[INFO] Key: %d up\n", KeyCode);
 }
 
-/*
-	Duoc goi MOI FRAME, dung CGame::IsKeyDown(DIK_LEFT)... de biet phim nao dang giu.
-	PHAN 8 - TODO 8.4: tam thoi goi tank->SetSpeed(...) truc tiep theo phim mui ten
-	PHAN 9 - TODO 9.2: doi sang tank->SetState(...), chi di 1 huong mot luc
-	Nho: tank co the con NULL neu ban chua tao no (Phan 7).
-*/
 void CTankKeyHandler::KeyState(BYTE* states)
 {
 	if (tank == NULL)

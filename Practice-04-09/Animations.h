@@ -4,9 +4,6 @@
 
 #include "Animation.h"
 
-/*
-	PHAN 6 - Kho animation (singleton), giong het CSprites nhung luu LPANIMATION.
-*/
 class CAnimations
 {
 	static CAnimations* __instance;

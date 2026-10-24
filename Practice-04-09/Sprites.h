@@ -7,10 +7,6 @@
 
 using namespace std;
 
-/*
-	PHAN 5 - Kho sprite dung chung ca game (singleton), tra sprite bang ID so nguyen.
-	Xem CTextures (Textures.h/.cpp) de biet cach viet mot kho singleton.
-*/
 class CSprites
 {
 	static CSprites* __instance;

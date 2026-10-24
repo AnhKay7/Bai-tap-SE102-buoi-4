@@ -2,27 +2,22 @@
 #include "Bullet.h"
 #include "Game.h"
 
-/*
-	PHAN 7 - TODO 7.2
-	- Cap nhat vi tri theo van toc va dt
-	- Giu xe trong man hinh: tam xe nam trong [TANK_SIZE/2, chieu rong - TANK_SIZE/2]
-	  (kich thuoc man hinh: CGame::GetInstance()->GetBackBufferWidth() / GetBackBufferHeight())
-*/
 void CTank::Update(DWORD dt)
 {
 	x += vx * dt;
 	y += vy * dt;
-	
-	float half = TANK_SIZE / 2;
-	if (x < half)
-		x = half;
-	float rightEdge = CGame::GetInstance()->GetBackBufferWidth() - half;
+
+	float halfW = TANK_WIDTH / 2.0f;
+	float halfH = TANK_HEIGHT / 2.0f;
+	if (x < halfW)
+		x = halfW;
+	float rightEdge = CGame::GetInstance()->GetBackBufferWidth() - halfW;
 	if (x > rightEdge)
 		x = rightEdge;
 
-	if (y < half)
-		y = half;
-	float bottomEdge = CGame::GetInstance()->GetBackBufferHeight() - half;
+	if (y < halfH)
+		y = halfH;
+	float bottomEdge = CGame::GetInstance()->GetBackBufferHeight() - halfH;
 	if (y > bottomEdge)
 		y = bottomEdge;
 }
@@ -31,25 +26,16 @@ int CTank::GetFacing() {
 	return (int)lastFacing;
 }
 int CTank::GetAnimationId() {
-
-	int facingValue = GetFacing();
-	int moveValue = (currentState != TankState::Idle ? 1 : 0);
-	return TANK_ANI_ID + facingValue * 10 + moveValue;
+	bool moveValue = (currentState != TankState::Idle ? 1 : 0);
+	bool moveVerticalValue = (currentState == TankState::MoveUp || currentState == TankState::MoveDown);
+	return TANK_ANI_ID + moveValue + moveVerticalValue;
 }
-/*
-	PHAN 7 - TODO 7.2: ve mot animation co dinh tai (x, y)
-	PHAN 9 - TODO 9.3: chon animation theo huong va theo dang dung yen / dang chay
-*/
+
 void CTank::Render()
 {
 	CAnimations::GetInstance()->Get(GetAnimationId())->Render(x, y);
 }
 
-/*
-	PHAN 9 - TODO 9.2
-	Moi state dat vx, vy va huong tuong ung. State IDLE: dung lai nhung GIU NGUYEN huong.
-	Cuoi ham goi CGameObject::SetState(state).
-*/
 void CTank::SetState(TankState newState)
 {
 	switch (newState)
@@ -87,11 +73,6 @@ void CTank::SetState(TankState newState)
 	currentState = newState;
 }
 
-/*
-	PHAN 9 - TODO 9.4
-	- Hoi chieu: neu chua qua N ms tu lan ban truoc thi tra ve NULL (dung GetTickCount64)
-	- Tao CBullet o dau nong sung theo huong dang quay
-*/
 CBullet* CTank::Fire()
 {
 	ULONGLONG now = GetTickCount64();
@@ -99,29 +80,8 @@ CBullet* CTank::Fire()
 		return NULL;
 
 	lastTimeFire = now;
-	float d = TANK_SIZE / 2.0f + 2;
 	float bx = x, by = y;
-	float bvxMul = 0, bvyMul = 0;
-	switch (lastFacing)
-	{
-	case CTank::Facing::Up:
-		by -= d;
-		bvyMul = -1;
-		break;
-	case CTank::Facing::Right:
-		bx += d;
-		bvxMul = 1;
-		break;
-	case CTank::Facing::Down:
-		by += d;
-		bvyMul = 1;
-		break;
-	case CTank::Facing::Left:
-		bx -= d;
-		bvxMul = -1;
-		break;
-	default:
-		break;
-	}
+	float bvxMul = 1, bvyMul = 0;
+
 	return new CBullet(bx, by, bvxMul, bvyMul);
 }

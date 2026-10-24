@@ -3,7 +3,6 @@
 
 CAnimations* CAnimations::__instance = NULL;
 
-// PHAN 6 - TODO 6.2: ba ham duoi day, lam giong CSprites
 CAnimations* CAnimations::GetInstance()
 {
 	if (__instance == NULL)

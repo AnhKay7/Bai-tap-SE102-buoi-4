@@ -1,14 +1,3 @@
-/* =============================================================
-	INTRODUCTION TO GAME PROGRAMMING SE102
-
-	PRACTICE 04-09 - Tu dung lai framework, lam game xe tang
-
-	Da co san (tang 1-3): cua so Win32, Direct3D 10, nap texture,
-	ham CGame::Draw ve mot vung texture, khoi tao DirectInput.
-
-	Ban lam: tang 4-9, xem TASKS.md. Tim chu "TODO" trong cac file.
-================================================================ */
-
 #include <windows.h>
 
 #include "debug.h"
@@ -23,7 +12,7 @@
 
 #include "Tank.h"
 #include "Bullet.h"
-
+#include "Enemy.h"
 #include "TankKeyHandler.h"
 
 #define WINDOW_CLASS_NAME L"PracticeWindow"
@@ -38,30 +27,22 @@
 #define ID_TEX_TANK 0
 
 #define TEXTURES_DIR L"textures"
-#define TEXTURE_PATH_TANK TEXTURES_DIR "\\tank.png"
+#define TEXTURE_PATH_TANK TEXTURES_DIR "\\LifeForce.png"
 
 #define TANK_SPRITE_ID 10000
+#define ENEMY_SPRITE_ID 40000
 #define BULLET_SPRITE_ID 20000
-/*
-	Bo cuc textures\tank.png (144 x 36):
-	  - Hang 1, y tu 0 den 15: 8 o 16x16, o thu i bat dau o x = i * 18
-	      i = 0, 1: huong LEN    (frame 0, frame 1)
-	      i = 2, 3: huong PHAI
-	      i = 4, 5: huong XUONG
-	      i = 6, 7: huong TRAI
-	    2 frame cung huong chi khac nhau o vach xich -> doi qua lai se thay xich chay.
-	  - Hang 2: vien dan 4x4 tai (0, 18) den (3, 21)
-*/
 
 CTank* tank = NULL;
 vector<CBullet*> bullets;
+vector<CEnemy*> enemys;
+
+ULONGLONG nextEnemySpawn = 0;
+int enemysGroupCount = 0;
 
 CTankKeyHandler* keyHandler;
 
-// Dung cho PHAN 4: ve ca tam anh tank.png va cho no chay qua lai
 LPTEXTURE texTank = NULL;
-//float testX = 100.0f;
-//float testVx = 0.1f;		// pixel / ms
 
 LRESULT CALLBACK WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -82,61 +63,72 @@ void LoadResources()
 	textures->Add(ID_TEX_TANK, TEXTURE_PATH_TANK);
 	texTank = textures->Get(ID_TEX_TANK);
 
-	// PHAN 5 - TODO 5.3: cat 8 sprite xe tang va 1 sprite vien dan tu texTank
-	//                     (dat ID theo quy uoc cua ban, vd 10000 + huong*10 + frame)
+	for (int i = 0; i < 4; i++) {
 
-	for (int i = 0; i < 8; i++) {
-
-		int j = i / 2;
-		int top = 0;
-		int left = i * 18;
-		CSprites::GetInstance()->Add(TANK_SPRITE_ID + j * 10 + i % 2, left, top, left + 15, top + 15, texTank);
+		int left = 24 + i * 32;
+		int top = 8;
+		CSprites::GetInstance()->Add(TANK_SPRITE_ID + 10 + i, left, top, left + 24, top + 15, texTank);
 	}
-	CSprites::GetInstance()->Add(BULLET_SPRITE_ID, 0, 18, 3, 21, texTank);
+	CSprites::GetInstance()->Add(BULLET_SPRITE_ID, 328, 8, 351, 23, texTank);
+	CSprites::GetInstance()->Add(ENEMY_SPRITE_ID, 24, 56, 47, 79, texTank);
 
-	// PHAN 6 - TODO 6.3: tao animation dung yen (1 frame) va dang chay (2 frame) cho moi huong,
-	//                     va 1 animation cho vien dan
+	CAnimation* Idle = new CAnimation(0);
+	Idle->Add(TANK_SPRITE_ID + 10);
 
-	for (int i = 0; i < 4; i++)
-	{
-		CAnimation* Idle = new CAnimation(0);
-		Idle->Add(TANK_SPRITE_ID + 10 * i);
+	CAnimation* Move = new CAnimation(80);
+	Move->Add(TANK_SPRITE_ID + 10);
+	Move->Add(TANK_SPRITE_ID + 10 + 1);
 
-		CAnimation* Move = new CAnimation(80);
-		Move->Add(TANK_SPRITE_ID + 10 * i);
-		Move->Add(TANK_SPRITE_ID + 10 * i + 1);
+	CAnimation* MoveVertical = new CAnimation(80);
+	MoveVertical->Add(TANK_SPRITE_ID + 10 + 1);
+	MoveVertical->Add(TANK_SPRITE_ID + 12);
+	MoveVertical->Add(TANK_SPRITE_ID + 13);
 
-		CAnimations::GetInstance()->Add(TANK_ANI_ID + 10 * i, Idle);
-		CAnimations::GetInstance()->Add(TANK_ANI_ID + 10 * i + 1, Move);
-	}
+	CAnimations::GetInstance()->Add(TANK_ANI_ID, Idle);
+	CAnimations::GetInstance()->Add(TANK_ANI_ID + 1, Move);
+	CAnimations::GetInstance()->Add(TANK_ANI_ID + 2, MoveVertical);
 
 	CAnimation* flyingBullet = new CAnimation(0);
 	flyingBullet->Add(BULLET_SPRITE_ID);
 	CAnimations::GetInstance()->Add(BULLET_ANI_ID, flyingBullet);
-	// PHAN 7 - TODO 7.3: tao xe tang
-	// tank = new CTank(150.0f, 100.0f);
+
+	CAnimation* EnemyAni = new CAnimation(0);
+	EnemyAni->Add(ENEMY_SPRITE_ID);
+	CAnimations::GetInstance()->Add(ENEMY_ANI_ID, EnemyAni);
+
 	tank = new CTank(150.0f, 100.0f);
 }
+void ProcessCollisions()
+{
+	for (CBullet* b : bullets) {
+		if (b->IsDeleted()) continue;
+		for (CEnemy* e : enemys)
+		{
+			if (e->IsDeath()) continue;
+			if (CGameObject::Overlap(b, e)) {
+				b->Delete();
+				e->SetState(CEnemy::EnemyState::Death);
+				break;
+			}
+		}
+	}
 
+	if (tank == NULL) return;
+	for (CEnemy* e : enemys) {
+		if (e->IsDeath()) continue;
+		if (CGameObject::Overlap(tank, e)) {
+			e->SetState(CEnemy::EnemyState::Death);
+			delete tank;
+			tank = NULL;
+			return;
+		}
+	}
+}
 void Update(DWORD dt)
 {
-	// PHAN 4 - TODO 4.2: cho testX chay qua lai: testX += testVx * dt,
-	//                     cham mep trai/phai man hinh thi doi dau testVx
 
-	//testX += testVx * dt;
-	//float half = texTank->getWidth() / 2.0f;
-	//if (testX <= half) {
-	//	testX = half;
-	//	testVx *= -1;
-	//}
-	//float rightEdge = CGame::GetInstance()->GetBackBufferWidth() - half;
-	//if (testX >= rightEdge)
-	//{
-	//	testX = rightEdge;
-	//	testVx *= -1;
-	//}
+	ProcessCollisions();
 
-	// PHAN 7 - TODO 7.3: tank->Update(dt) (nho kiem tra tank != NULL)
 	if (tank != NULL)
 	{
 		tank->Update(dt);
@@ -151,7 +143,35 @@ void Update(DWORD dt)
 			else i++;
 		}
 	}
-	// PHAN 9 - TODO 9.5: update tung vien dan, roi delete + xoa khoi vector nhung vien IsDeleted()
+
+	ULONGLONG now = GetTickCount64();
+	if (now >= nextEnemySpawn) {
+
+		float x = CGame::GetInstance()->GetBackBufferWidth();
+		float y = CGame::GetInstance()->GetBackBufferHeight();
+
+		enemysGroupCount++;
+
+		if (enemysGroupCount < 4) {
+			nextEnemySpawn = now + ENEMY_SPAWN_CD;
+		}
+		else {
+			enemysGroupCount = 0;
+			nextEnemySpawn = now + ENEMY_GROUP_SPAWN_TIME;
+		}
+
+		enemys.push_back(new CEnemy(x, y / 2, -1, 0));
+	}
+	if (!enemys.empty()) {
+		for (int i = 0; i < enemys.size();) {
+			enemys[i]->Update(dt);
+			if (enemys[i]->IsDeath()) {
+				delete enemys[i];
+				enemys.erase(enemys.begin() + i);
+			}
+			else i++;
+		}
+	}
 }
 
 void Render()
@@ -170,37 +190,18 @@ void Render()
 	FLOAT NewBlendFactor[4] = { 0,0,0,0 };
 	pD3DDevice->OMSetBlendState(g->GetAlphaBlending(), NewBlendFactor, 0xffffffff);
 
-	// ---- Ve moi thu o giua Begin() va End() ----
-
-	//// PHAN 4: ve ca tam texture tai (testX, 60). Xoa dong nay khi da lam xong Phan 5.
-	//g->Draw(testX, 60, texTank);
-
-	//// PHAN 5 - TODO 5.3: ve thu 4 sprite huong (frame 0) canh nhau, vd
-	////     CSprites::GetInstance()->Get(...)->Draw(40, 150);
-	//CSprites::GetInstance()->Get(TANK_SPRITE_ID)->Draw(40, 150);
-	//CSprites::GetInstance()->Get(TANK_SPRITE_ID + 10)->Draw(58, 150);
-	//CSprites::GetInstance()->Get(TANK_SPRITE_ID + 20)->Draw(76, 150);
-	//CSprites::GetInstance()->Get(TANK_SPRITE_ID + 30)->Draw(94, 150);
-
-
-	// PHAN 6 - TODO 6.3: ve thu 4 animation dang chay canh nhau
-
-	//CAnimations::GetInstance()->Get(TANK_ANI_ID + 1)->Render(40, 150);
-	//CAnimations::GetInstance()->Get(TANK_ANI_ID + 11)->Render(58, 150);
-	//CAnimations::GetInstance()->Get(TANK_ANI_ID + 21)->Render(76, 150);
-	//CAnimations::GetInstance()->Get(TANK_ANI_ID + 31)->Render(94, 150);
-
-	// PHAN 7 - TODO 7.3: tank->Render()
 	if (tank != NULL)
 		tank->Render();
-
-	// PHAN 9 - TODO 9.5: ve tung vien dan
 
 	if (!bullets.empty()) {
 		for (CBullet* bullet : bullets)
 			bullet->Render();
 	}
 
+	if (!enemys.empty()) {
+		for (CEnemy* enemy : enemys)
+			enemy->Render();
+	}
 	spriteHandler->End();
 	pSwapChain->Present(0, 0);
 }
@@ -251,15 +252,6 @@ HWND CreateGameWindow(HINSTANCE hInstance, int nCmdShow, int ScreenWidth, int Sc
 	return hWnd;
 }
 
-/*
-	PHAN 4 - TODO 4.1: game loop co dt
-	Hien tai vong lap chay het toc do may va luon goi Update(0), nen khong co gi chuyen dong.
-	Sua lai de:
-	  - Moi frame keo dai it nhat 1000 / MAX_FRAME_RATE ms (MAX_FRAME_RATE = 60, trong Game.h)
-	  - dt = thoi gian (ms) tu dau frame truoc toi bay gio, dung GetTickCount64()
-	  - Du thoi gian thi: Update(dt), ProcessKeyboard(), Render()
-	  - Chua du thi Sleep phan con thieu (de khong an 100% CPU)
-*/
 int Run()
 {
 	MSG msg;

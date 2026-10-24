@@ -37,6 +37,7 @@
     <ClCompile Include="TankKeyHandler.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Enemy.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Animation.h">
@@ -78,9 +79,13 @@
     <ClInclude Include="Textures.h">
       <Filter>Header</Filter>
     </ClInclude>
+    <ClInclude Include="Enemy.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="textures\tank.png" />
+    <Image Include="textures\LifeForce.png">
+      <Filter>Source</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
